@@ -31,6 +31,8 @@ namespace Steamworks
 		internal static void InstallEvents()
 		{
 			new Event<ValidateAuthTicketResponse_t>( x => OnValidateAuthTicketResponse?.Invoke( x.SteamID, x.OwnerSteamID, x.AuthSessionResponse ), true );
+
+			SteamServerInventory.InstallEvents();
 		}
 
 		/// <summary>
@@ -51,7 +53,7 @@ namespace Steamworks
 			//
 			// Get other interfaces
 			//
-			if ( !global::SteamApi.SteamInternal_GameServer_Init( ipaddress, init.SteamPort, init.GamePort, init.QueryPort, (int)( init.Secure ? 3 : 2 ), init.VersionString ) )
+			if ( !SteamInternal.GameServer_Init( ipaddress, init.SteamPort, init.GamePort, init.QueryPort, (int)( init.Secure ? 3 : 2 ), init.VersionString ) )
 			{
 				throw new System.Exception( "InitGameServer returned false" );
 			}
@@ -77,6 +79,12 @@ namespace Steamworks
 		public static void Shutdown()
 		{
 			initialized = false;
+
+			_internal = null;
+
+			SteamServerInventory.Shutdown();
+
+			SteamGameServer.Shutdown();
 		}
 
 
@@ -93,7 +101,7 @@ namespace Steamworks
 		{
 			try
 			{
-				SteamApi.SteamGameServer_RunCallbacks();
+				SteamGameServer.RunCallbacks();
 			}
 			catch ( System.Exception )
 			{
@@ -353,7 +361,7 @@ namespace Steamworks
 		/// <summary>
 		/// We have received a server query on our game port. Pass it to Steam to handle.
 		/// </summary>
-		public static  unsafe void HandleIncomingPacket( byte[] data, int size, uint address, ushort port )
+		public static unsafe void HandleIncomingPacket( byte[] data, int size, uint address, ushort port )
 		{
 			fixed ( byte* ptr = data )
 			{
