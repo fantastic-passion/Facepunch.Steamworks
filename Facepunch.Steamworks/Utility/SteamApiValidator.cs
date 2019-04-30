@@ -409,12 +409,10 @@ namespace SteamAPIValidator
 
                 if (steamApiPtr == IntPtr.Zero)
                 {
-                    Debug.WriteLine("Steam API has not loaded. Forcing an emergency load, this won't cause issues.");
                     steamApiPtr = LoadLibrary(steamDllName);
                 }
                 if (steamApiPtr == IntPtr.Zero)
                 {
-                    Debug.WriteLine("Steam API not found.");
                     return false;
                 }
 
@@ -513,7 +511,6 @@ namespace SteamAPIValidator
                 ref cryptMsg,
                 ref context))
             {
-                Console.WriteLine("Can't read cert at all.");
                 throw new InvalidOperationException($"{Marshal.GetLastWin32Error()} - Sigs ain't working.");
             }
 
@@ -563,54 +560,54 @@ namespace SteamAPIValidator
         /// </summary>
         /// <param name="filePath">The file path.</param>
         /// <returns>System.Boolean.</returns>
-        private static int signCount = 0;
 
         private static bool CheckIfValveSigned(string filePath)
         {
-            try
+            bool result = false;
+            int attemptCount = 0;
+
+            while (attemptCount < 5)
             {
-                if (signCount == 0)
+                try
                 {
-                    Console.WriteLine($"Looking at that cert in {filePath}");
+                    using (var cert = GetDigitalCertificate(filePath))
+                    {
+                        if (cert.Subject == "CN=Valve, O=Valve, L=Bellevue, S=WA, C=US")
+                        {
+                            try
+                            {
+                                // It's super true but the name info is hard to get.
+                                if (cert.GetNameInfo(X509NameType.SimpleName, true) == "Valve")
+                                {
+                                    return true;
+                                }
+                            }
+                            catch
+                            {
+                                // Ignore.
+                            }
+
+                            return true;
+                        }
+                    }
                 }
-                else if (signCount == 5)
+                catch (FileNotFoundException)
                 {
-                    Console.WriteLine($"Unable to {filePath} after 5 times. Assuming CN emulator.");
+                    return false;
+                }
+                catch (IOException)
+                {
+                    // Ignore.
+                }
+                catch (Exception e)
+                {
                     return false;
                 }
 
-                using (var cert = GetDigitalCertificate(filePath))
-                {
-                    if (cert.Subject == "CN=Valve, O=Valve, L=Bellevue, S=WA, C=US")
-                    {
-                        Console.WriteLine($"{filePath} is signed.");
-                        try
-                        {
-                            // It's super true but the name info is hard to get.
-                            if (cert.GetNameInfo(X509NameType.SimpleName, true) == "Valve")
-                            {
-                                Console.WriteLine($"{filePath} is super legit.");
-                                return true;
-                            }
-                        }
-                        catch
-                        {
-                            // Ignore.
-                        }
-
-                        return true;
-                    }
-                }
-            }
-            catch
-            {
-                // Try again. Keep a temporary counter.
-                signCount += 1;
-                CheckIfValveSigned(filePath);
-                // Ignore.
+                attemptCount++;
             }
 
-            return false;
+            return result;
         }
 
         /// <summary>

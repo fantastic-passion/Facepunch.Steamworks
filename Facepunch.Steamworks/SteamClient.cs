@@ -9,9 +9,8 @@ using SteamAPIValidator;
 
 namespace Steamworks
 {
-	public static class SteamClient
-	{
-
+    public static class SteamClient
+    {
         /// <summary>
         /// Fires when an invalid Steam DLL has been detected. Return true if you wish to allow the DLL to still run, else return false.
         /// </summary>
@@ -22,143 +21,154 @@ namespace Steamworks
             return true;
         };
 
-		static bool initialized;
+        static bool initialized;
 
-		public static void Init( uint appid, bool allowDevAppIdFallback = false)
-		{
+        public static bool UseAsyncCallbacks = false;
 
+        public static void Init(uint appid, bool allowDevAppIdFallback = false)
+        {
             if (appid == 480)
             {
                 Console.Error.WriteLine("Using standard developer app ID as fallback. Report this to FP.");
             }
 
-			if ( IntPtr.Size != 8 )
-			{
-				throw new System.Exception( "Only 64bit processes are currently supported" );
-			}
+            if (IntPtr.Size != 8)
+            {
+                throw new System.Exception("Only 64bit processes are currently supported");
+            }
 
-			System.Environment.SetEnvironmentVariable( "SteamAppId", appid.ToString() );
-			System.Environment.SetEnvironmentVariable( "SteamGameId", appid.ToString() );
+            System.Environment.SetEnvironmentVariable("SteamAppId", appid.ToString());
+            System.Environment.SetEnvironmentVariable("SteamGameId", appid.ToString());
 
-			if ( !SteamAPI.Init() )
-			{
+            if (!SteamAPI.Init())
+            {
                 if (allowDevAppIdFallback && appid != 480)
                 {
                     Init(480);
                     return;
                 }
-				throw new System.Exception( "SteamApi_Init returned false. Steam isn't running, couldn't find Steam, AppId is ureleased, Don't own AppId." );
-			}
+                throw new System.Exception("SteamApi_Init returned false. Steam isn't running, couldn't find Steam, AppId is unreleased, Don't own AppId.");
+            }
 
             if (PlatformUtility.CurrentPlatform == PlatformEnum.Windows && !SteamApiValidator.IsValidSteamApiDll() && !InvalidSteamDllHandler())
             {
-                SteamApi.SteamAPI_Shutdown();
+                SteamAPI.Shutdown();
                 throw new FilthyPirateException();
             }
 
-			AppId = appid;
+            AppId = appid;
 
-			initialized = true;
+            initialized = true;
 
-			SteamApps.InstallEvents();
-			SteamUtils.InstallEvents();
-			SteamParental.InstallEvents();
-			SteamMusic.InstallEvents();
-			SteamVideo.InstallEvents();
-			SteamUser.InstallEvents();
-			SteamFriends.InstallEvents();
-			SteamScreenshots.InstallEvents();
-			SteamUserStats.InstallEvents();
-			SteamInventory.InstallEvents();
+            SteamApps.InstallEvents();
+            SteamUtils.InstallEvents();
+            SteamParental.InstallEvents();
+            SteamMusic.InstallEvents();
+            SteamVideo.InstallEvents();
+            SteamUser.InstallEvents();
+            SteamFriends.InstallEvents();
+            SteamScreenshots.InstallEvents();
+            SteamUserStats.InstallEvents();
+            SteamInventory.InstallEvents();
 
-			RunCallbacksAsync();
-		}
+            if (UseAsyncCallbacks)
+            {
+                RunCallbacksAsync().ContinueWith(
+                    t =>
+                    {
+                       // Do nothing.
+                    },
+                    TaskContinuationOptions.OnlyOnFaulted);
+            }
+        }
 
-		public static bool IsValid => initialized;
+        public static bool IsValid => initialized;
 
-		internal static async void RunCallbacksAsync()
-		{
-			while ( IsValid )
-			{
-				await Task.Delay( 16 );
-				try
-				{
-					SteamAPI.RunCallbacks();
-				}
-				catch ( System.Exception )
-				{
-					// TODO - error outputs
-				}
-			}
-		}
+        internal static async Task RunCallbacksAsync()
+        {
+            while (IsValid)
+            {
+                await Task.Delay(16);
+                try
+                {
+                    if(IsValid)
+                        SteamAPI.RunCallbacks();
+                }
+                catch (System.Exception)
+                {
+                    // TODO - error outputs
+                }
+            }
+        }
 
-		public static void Shutdown()
-		{
-			initialized = false;
+        public static void Shutdown()
+        {
+            initialized = false;
 
-			SteamApps.Shutdown();
-			SteamUtils.Shutdown();
-			SteamParental.Shutdown();
-			SteamMusic.Shutdown();
-			SteamVideo.Shutdown();
-			SteamUser.Shutdown();
-			SteamFriends.Shutdown();
-			SteamScreenshots.Shutdown();
-			SteamUserStats.Shutdown();
-			SteamInventory.Shutdown();
 
-			SteamAPI.Shutdown();
-		}
+            SteamApps.Shutdown();
+            SteamUtils.Shutdown();
+            SteamParental.Shutdown();
+            SteamMusic.Shutdown();
+            SteamVideo.Shutdown();
+            SteamUser.Shutdown();
+            SteamFriends.Shutdown();
+            SteamScreenshots.Shutdown();
+            SteamUserStats.Shutdown();
+            SteamInventory.Shutdown();
 
-		internal static void RegisterCallback( IntPtr intPtr, int callbackId )
-		{
-			SteamAPI.RegisterCallback( intPtr, callbackId );
-		}
+            SteamAPI.Shutdown();
+        }
 
-		public static void Update()
-		{
-			SteamAPI.RunCallbacks();
-		}
+        internal static void RegisterCallback(IntPtr intPtr, int callbackId)
+        {
+            SteamAPI.RegisterCallback(intPtr, callbackId);
+        }
 
-		internal static void UnregisterCallback( IntPtr intPtr )
-		{
-			SteamAPI.UnregisterCallback( intPtr );
-		}
+        public static void Update()
+        {
+            SteamAPI.RunCallbacks();
+        }
 
-		/// <summary>
-		/// Checks if the current user's Steam client is connected to the Steam servers.
-		/// If it's not then no real-time services provided by the Steamworks API will be enabled. The Steam 
-		/// client will automatically be trying to recreate the connection as often as possible. When the 
-		/// connection is restored a SteamServersConnected_t callback will be posted.
-		/// You usually don't need to check for this yourself. All of the API calls that rely on this will 
-		/// check internally. Forcefully disabling stuff when the player loses access is usually not a 
-		/// very good experience for the player and you could be preventing them from accessing APIs that do not 
-		/// need a live connection to Steam.
-		/// </summary>
-		public static bool IsLoggedOn => SteamUser.Internal.BLoggedOn();
+        internal static void UnregisterCallback(IntPtr intPtr)
+        {
+            SteamAPI.UnregisterCallback(intPtr);
+        }
 
-		/// <summary>
-		/// Gets the Steam ID of the account currently logged into the Steam client. This is 
-		/// commonly called the 'current user', or 'local user'.
-		/// A Steam ID is a unique identifier for a Steam accounts, Steam groups, Lobbies and Chat 
-		/// rooms, and used to differentiate users in all parts of the Steamworks API.
-		/// </summary>
-		public static SteamId SteamId => SteamUser.Internal.GetSteamID();
+        /// <summary>
+        /// Checks if the current user's Steam client is connected to the Steam servers.
+        /// If it's not then no real-time services provided by the Steamworks API will be enabled. The Steam
+        /// client will automatically be trying to recreate the connection as often as possible. When the
+        /// connection is restored a SteamServersConnected_t callback will be posted.
+        /// You usually don't need to check for this yourself. All of the API calls that rely on this will
+        /// check internally. Forcefully disabling stuff when the player loses access is usually not a
+        /// very good experience for the player and you could be preventing them from accessing APIs that do not
+        /// need a live connection to Steam.
+        /// </summary>
+        public static bool IsLoggedOn => SteamUser.Internal.BLoggedOn();
 
-		/// <summary>
-		/// returns the local players name - guaranteed to not be NULL.
-		/// this is the same name as on the users community profile page
-		/// </summary>
-		public static string Name => SteamFriends.Internal.GetPersonaName();
+        /// <summary>
+        /// Gets the Steam ID of the account currently logged into the Steam client. This is
+        /// commonly called the 'current user', or 'local user'.
+        /// A Steam ID is a unique identifier for a Steam accounts, Steam groups, Lobbies and Chat
+        /// rooms, and used to differentiate users in all parts of the Steamworks API.
+        /// </summary>
+        public static SteamId SteamId => SteamUser.Internal.GetSteamID();
 
-		/// <summary>
-		/// gets the status of the current user
-		/// </summary>
-		public static FriendState State => SteamFriends.Internal.GetPersonaState();
+        /// <summary>
+        /// returns the local players name - guaranteed to not be NULL.
+        /// this is the same name as on the users community profile page
+        /// </summary>
+        public static string Name => SteamFriends.Internal.GetPersonaName();
 
-		/// <summary>
-		/// returns the appID of the current process
-		/// </summary>
-		public static AppId AppId { get; internal set; }
-	}
+        /// <summary>
+        /// gets the status of the current user
+        /// </summary>
+        public static FriendState State => SteamFriends.Internal.GetPersonaState();
+
+        /// <summary>
+        /// returns the appID of the current process
+        /// </summary>
+        public static AppId AppId { get; internal set; }
+    }
 }
