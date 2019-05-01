@@ -118,7 +118,7 @@ namespace Steamworks
             SteamUserStats.Shutdown();
             SteamInventory.Shutdown();
             SteamNetworking.Shutdown();
-            SteamMatchmaking.Shutdown();
+            SteamMatchmaking.Shutdown();    
 
             SteamAPI.Shutdown();
 		}
