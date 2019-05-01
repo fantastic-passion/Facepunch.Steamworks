@@ -77,6 +77,7 @@ namespace Generator
 				GenerateVTableClass( "ISteamUGC", $"{folder}../Generated/Interfaces/ISteamUGC.cs" );
 				GenerateVTableClass( "ISteamRemoteStorage", $"{folder}../Generated/Interfaces/ISteamRemoteStorage.cs" );
 				GenerateVTableClass( "ISteamInventory", $"{folder}../Generated/Interfaces/ISteamInventory.cs" );
+				GenerateVTableClass( "ISteamNetworking", $"{folder}../Generated/Interfaces/ISteamNetworking.cs" );
 			}
 		}
 
@@ -110,6 +111,7 @@ namespace Generator
             WriteLine( "using System.Runtime.InteropServices;" );
             WriteLine( "using System.Linq;" );
             WriteLine( "using Steamworks.Data;" );
+            WriteLine( "using System.Threading.Tasks;" );
             WriteLine();
             StartBlock( "namespace " + NamespaceName );
         }

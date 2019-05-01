@@ -53,7 +53,6 @@ namespace Generator
                 if ( name.Contains( "::" ) )
                     continue;
 
-
 				int defaultPack = 8;
 
                 if ( c.Fields.Any( x => x.Type.Contains( "CSteamID" ) ) && !ForceLargePackStructs.Contains( c.Name ) )
@@ -64,7 +63,8 @@ namespace Generator
 				//
 				// Main struct
 				//
-                StartBlock( $"{Cleanup.Expose( name )} struct {name}{(isCallback?" : Steamworks.ISteamCallback":"")}" );
+				WriteLine( "[StructLayout( LayoutKind.Sequential, Pack = 4 )]" );
+                StartBlock( $"{Cleanup.Expose( name )} struct {name}" );
                 {
 					//
 					// The fields
@@ -74,11 +74,69 @@ namespace Generator
 
 					if ( isCallback )
                     {
-						WriteLine( "#region ISteamCallback" );
+						WriteLine( "#region SteamCallback" );
 						{
-							WriteLine( $"public int GetCallbackId() => {c.CallbackId};" );
-							WriteLine( $"public int GetStructSize() => System.Runtime.InteropServices.Marshal.SizeOf( Config.PackSmall ? typeof(Pack4) : typeof(Pack8) );" );
-							WriteLine( $"public Steamworks.ISteamCallback Fill( IntPtr p ) => Config.PackSmall ? (({name})(Pack4) Marshal.PtrToStructure( p, typeof(Pack4) )) : (({name})(Pack8) Marshal.PtrToStructure( p, typeof(Pack8) ));" );
+							if ( defaultPack == 4 )
+							{
+								WriteLine( $"internal static readonly int StructSize = System.Runtime.InteropServices.Marshal.SizeOf( typeof({name}) );" );
+								WriteLine( $"internal static {name} Fill( IntPtr p ) => (({name})({name}) Marshal.PtrToStructure( p, typeof({name}) ) );" );
+							}
+							else
+							{
+								WriteLine( $"internal static readonly int StructSize = System.Runtime.InteropServices.Marshal.SizeOf( Config.PackSmall ? typeof({name}) : typeof(Pack8) );" );
+								WriteLine( $"internal static {name} Fill( IntPtr p ) => Config.PackSmall ? (({name})({name}) Marshal.PtrToStructure( p, typeof({name}) )) : (({name})(Pack8) Marshal.PtrToStructure( p, typeof(Pack8) ));" );
+							}
+							WriteLine();
+							WriteLine( $"static Action<{name}> actionClient;" );
+							WriteLine( $"[MonoPInvokeCallback] static void OnClient( IntPtr thisptr, IntPtr pvParam ) => actionClient?.Invoke( Fill( pvParam ) );" );
+
+							WriteLine( $"static Action<{name}> actionServer;" );
+							WriteLine( $"[MonoPInvokeCallback] static void OnServer( IntPtr thisptr, IntPtr pvParam ) => actionServer?.Invoke( Fill( pvParam ) );" );
+
+							StartBlock( $"public static void Install( Action<{name}> action, bool server = false )" );
+							{
+								StartBlock( "if ( server )" );
+								{
+									WriteLine( $"Event.Register( OnServer, StructSize, {c.CallbackId}, true );" );
+									WriteLine( $"actionServer = action;" );
+								}
+								Else();
+								{
+									WriteLine( $"Event.Register( OnClient, StructSize, {c.CallbackId}, false );" );
+									WriteLine( $"actionClient = action;" );
+								}
+								EndBlock();
+
+							}
+							EndBlock();
+
+							StartBlock( $"public static async Task<{name}?> GetResultAsync( SteamAPICall_t handle )" );
+							{
+								WriteLine( $"bool failed = false;" );
+								WriteLine();
+								StartBlock( $"while ( !SteamUtils.IsCallComplete( handle, out failed ) )" );
+								{
+									WriteLine( $"await Task.Delay( 1 );" );
+								}
+								EndBlock();
+
+								WriteLine( $"if ( failed ) return null;" );
+								WriteLine( $"" );
+								WriteLine( $"var ptr = Marshal.AllocHGlobal( StructSize );" );
+								WriteLine( $"" );
+								WriteLine( $"try" );
+								WriteLine( $"{{" );
+								WriteLine( $"	if ( !SteamUtils.Internal.GetAPICallResult( handle, ptr, StructSize, {c.CallbackId}, ref failed ) || failed )" );
+								WriteLine( $"		return null;" );
+								WriteLine( $"" );
+								WriteLine( $"	return Fill( ptr );" );
+								WriteLine( $"}}" );
+								WriteLine( $"finally" );
+								WriteLine( $"{{" );
+								WriteLine( $"	Marshal.FreeHGlobal( ptr );" );
+								WriteLine( $"}}" );
+							}
+							EndBlock();
 						}
 						WriteLine( "#endregion" );
 					}
@@ -86,72 +144,55 @@ namespace Generator
 					{
 						WriteLine( "#region Marshalling" );
 						{
-							WriteLine( $"public int GetStructSize() => System.Runtime.InteropServices.Marshal.SizeOf( Config.PackSmall ? typeof(Pack4) : typeof(Pack8) );" );
-							WriteLine( $"public {name} Fill( IntPtr p ) => Config.PackSmall ? (({name})(Pack4) Marshal.PtrToStructure( p, typeof(Pack4) )) : (({name})(Pack8) Marshal.PtrToStructure( p, typeof(Pack8) ));" );
+							if ( defaultPack == 4 )
+							{
+								//WriteLine( $"internal static int GetStructSize() => System.Runtime.InteropServices.Marshal.SizeOf( typeof({name}) );" );
+								WriteLine( $"internal static {name} Fill( IntPtr p ) => (({name})({name}) Marshal.PtrToStructure( p, typeof({name}) ) );" );
+							}
+							else
+							{
+								//WriteLine( $"internal static int GetStructSize() => System.Runtime.InteropServices.Marshal.SizeOf( Config.PackSmall ? typeof({name}) : typeof(Pack8) );" );
+								WriteLine( $"internal static {name} Fill( IntPtr p ) => Config.PackSmall ? (({name})({name}) Marshal.PtrToStructure( p, typeof({name}) )) : (({name})(Pack8) Marshal.PtrToStructure( p, typeof(Pack8) ));" );
+							}
 						}
 						WriteLine( "#endregion" );
 					}
 
-					WriteLine( "#region Packed Versions" );
+					if ( defaultPack != 4 )
 					{
-						//
-						// Small packed struct (for osx, linux)
-						//
-
-						WriteLine( $"[StructLayout( LayoutKind.Sequential, Pack = 4 )]" );
-						StartBlock( $"public struct Pack4" );
+						WriteLine( "#region Packed Versions" );
 						{
-							StructFields( c.Fields );
-
 							//
-							// Implicit convert from PackSmall to regular
+							// Windows Packed version
 							//
 							WriteLine();
-							Write( $"public static implicit operator {name} ( {name}.Pack4 d ) => " );
+							WriteLine( $"[StructLayout( LayoutKind.Sequential, Pack = {defaultPack} )]" );
+							StartBlock( $"public struct Pack8" );
 							{
-								Write( $"new {name}{{ " );
+								StructFields( c.Fields );
+
+								//
+								// Implicit convert from PackSmall to regular
+								//
+								WriteLine();
+								Write( $"public static implicit operator {name} ( {name}.Pack8 d ) => " );
 								{
-									foreach ( var f in c.Fields )
+									Write( $"new {name}{{ " );
 									{
-										Write( $"{CleanMemberName( f.Name )} = d.{CleanMemberName( f.Name )}," );
+										foreach ( var f in c.Fields )
+										{
+											Write( $"{CleanMemberName( f.Name )} = d.{CleanMemberName( f.Name )}," );
+										}
 									}
+									WriteLine( " };" );
 								}
-								WriteLine( " };" );
+
 							}
+							EndBlock();
 
 						}
-						EndBlock();
-
-						//
-						// Small packed struct (for osx, linux)
-						//
-						WriteLine();
-						WriteLine( $"[StructLayout( LayoutKind.Sequential, Pack = {defaultPack} )]" );
-						StartBlock( $"public struct Pack8" );
-						{
-							StructFields( c.Fields );
-
-							//
-							// Implicit convert from PackSmall to regular
-							//
-							WriteLine();
-							Write( $"public static implicit operator {name} ( {name}.Pack8 d ) => " );
-							{
-								Write( $"new {name}{{ " );
-								{
-									foreach ( var f in c.Fields )
-									{
-										Write( $"{CleanMemberName( f.Name )} = d.{CleanMemberName( f.Name )}," );
-									}
-								}
-								WriteLine( " };" );
-							}
-
-						}
-						EndBlock();
-
+						WriteLine( "#endregion" );
 					}
-					WriteLine( "#endregion" );
 
                     if ( !string.IsNullOrEmpty( c.CallbackId ) )
                     {

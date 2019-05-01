@@ -31,10 +31,10 @@ namespace Steamworks
 
 		internal static void InstallEvents()
 		{
-			new Event<IPCountry_t>( x => OnIpCountryChanged?.Invoke() );
-			new Event<LowBatteryPower_t>( x => OnLowBatteryPower?.Invoke( x.MinutesBatteryLeft ) );
-			new Event<SteamShutdown_t>( x => OnSteamShutdown?.Invoke() );
-			new Event<GamepadTextInputDismissed_t>( x => OnGamepadTextInputDismissed?.Invoke( x.Submitted ) );
+			IPCountry_t.Install( x => OnIpCountryChanged?.Invoke() );
+			LowBatteryPower_t.Install( x => OnLowBatteryPower?.Invoke( x.MinutesBatteryLeft ) );
+			SteamShutdown_t.Install( x => OnSteamShutdown?.Invoke() );
+			GamepadTextInputDismissed_t.Install( x => OnGamepadTextInputDismissed?.Invoke( x.Submitted ) );
 		}
 
 		/// <summary>
@@ -166,7 +166,7 @@ namespace Steamworks
 		/// Asynchronous call to check if an executable file has been signed using the public key set on the signing tab
 		/// of the partner site, for example to refuse to load modified executable files.  
 		/// </summary>
-		public static async Task<CheckFileSignature> CheckFileSignature( string filename )
+		public static async Task<CheckFileSignature> CheckFileSignatureAsync( string filename )
 		{
 			var r = await Internal.CheckFileSignature( filename );
 
@@ -250,38 +250,10 @@ namespace Steamworks
 			}
 		}
 
-
 		internal static bool IsCallComplete( SteamAPICall_t call, out bool failed )
 		{
 			failed = false;
 			return Internal.IsAPICallCompleted( call, ref failed );
-		}
-
-		internal static T? GetResult<T>( SteamAPICall_t call ) where T : struct, ISteamCallback
-		{
-			var t = new T();
-
-			var size = t.GetStructSize();
-			var ptr = Marshal.AllocHGlobal( size );
-
-			try
-			{
-				bool failed = false;
-
-				if ( !Internal.GetAPICallResult( call, ptr, size, t.GetCallbackId(), ref failed ) )
-					return null;
-
-				if ( failed )
-					return null;
-
-				t = (T)t.Fill( ptr );
-
-				return t;
-			}
-			finally
-			{
-				Marshal.FreeHGlobal( ptr );
-			}
 		}
 	}
 }

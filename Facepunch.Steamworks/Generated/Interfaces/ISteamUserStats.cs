@@ -18,10 +18,10 @@ namespace Steamworks
 		public override void InitInternals()
 		{
 			_RequestCurrentStats = Marshal.GetDelegateForFunctionPointer<FRequestCurrentStats>( Marshal.ReadIntPtr( VTable, 0) );
-			_GetStat1 = Marshal.GetDelegateForFunctionPointer<FGetStat1>( Marshal.ReadIntPtr( VTable, 16) );
-			_GetStat2 = Marshal.GetDelegateForFunctionPointer<FGetStat2>( Marshal.ReadIntPtr( VTable, 8) );
-			_SetStat1 = Marshal.GetDelegateForFunctionPointer<FSetStat1>( Marshal.ReadIntPtr( VTable, 32) );
-			_SetStat2 = Marshal.GetDelegateForFunctionPointer<FSetStat2>( Marshal.ReadIntPtr( VTable, 24) );
+			_GetStat1 = Marshal.GetDelegateForFunctionPointer<FGetStat1>( Marshal.ReadIntPtr( VTable, Config.Os == OsType.Windows ? 16 : 8 ) );
+			_GetStat2 = Marshal.GetDelegateForFunctionPointer<FGetStat2>( Marshal.ReadIntPtr( VTable, Config.Os == OsType.Windows ? 8 : 16 ) );
+			_SetStat1 = Marshal.GetDelegateForFunctionPointer<FSetStat1>( Marshal.ReadIntPtr( VTable, Config.Os == OsType.Windows ? 32 : 24 ) );
+			_SetStat2 = Marshal.GetDelegateForFunctionPointer<FSetStat2>( Marshal.ReadIntPtr( VTable, Config.Os == OsType.Windows ? 24 : 32 ) );
 			_UpdateAvgRateStat = Marshal.GetDelegateForFunctionPointer<FUpdateAvgRateStat>( Marshal.ReadIntPtr( VTable, 40) );
 			_GetAchievement = Marshal.GetDelegateForFunctionPointer<FGetAchievement>( Marshal.ReadIntPtr( VTable, 48) );
 			_SetAchievement = Marshal.GetDelegateForFunctionPointer<FSetAchievement>( Marshal.ReadIntPtr( VTable, 56) );
@@ -34,8 +34,8 @@ namespace Steamworks
 			_GetNumAchievements = Marshal.GetDelegateForFunctionPointer<FGetNumAchievements>( Marshal.ReadIntPtr( VTable, 112) );
 			_GetAchievementName = Marshal.GetDelegateForFunctionPointer<FGetAchievementName>( Marshal.ReadIntPtr( VTable, 120) );
 			_RequestUserStats = Marshal.GetDelegateForFunctionPointer<FRequestUserStats>( Marshal.ReadIntPtr( VTable, 128) );
-			_GetUserStat1 = Marshal.GetDelegateForFunctionPointer<FGetUserStat1>( Marshal.ReadIntPtr( VTable, 144) );
-			_GetUserStat2 = Marshal.GetDelegateForFunctionPointer<FGetUserStat2>( Marshal.ReadIntPtr( VTable, 136) );
+			_GetUserStat1 = Marshal.GetDelegateForFunctionPointer<FGetUserStat1>( Marshal.ReadIntPtr( VTable, Config.Os == OsType.Windows ? 144 : 136 ) );
+			_GetUserStat2 = Marshal.GetDelegateForFunctionPointer<FGetUserStat2>( Marshal.ReadIntPtr( VTable, Config.Os == OsType.Windows ? 136 : 144 ) );
 			_GetUserAchievement = Marshal.GetDelegateForFunctionPointer<FGetUserAchievement>( Marshal.ReadIntPtr( VTable, 152) );
 			_GetUserAchievementAndUnlockTime = Marshal.GetDelegateForFunctionPointer<FGetUserAchievementAndUnlockTime>( Marshal.ReadIntPtr( VTable, 160) );
 			_ResetAllStats = Marshal.GetDelegateForFunctionPointer<FResetAllStats>( Marshal.ReadIntPtr( VTable, 168) );
@@ -56,10 +56,10 @@ namespace Steamworks
 			_GetNextMostAchievedAchievementInfo = Marshal.GetDelegateForFunctionPointer<FGetNextMostAchievedAchievementInfo>( Marshal.ReadIntPtr( VTable, 288) );
 			_GetAchievementAchievedPercent = Marshal.GetDelegateForFunctionPointer<FGetAchievementAchievedPercent>( Marshal.ReadIntPtr( VTable, 296) );
 			_RequestGlobalStats = Marshal.GetDelegateForFunctionPointer<FRequestGlobalStats>( Marshal.ReadIntPtr( VTable, 304) );
-			_GetGlobalStat1 = Marshal.GetDelegateForFunctionPointer<FGetGlobalStat1>( Marshal.ReadIntPtr( VTable, 320) );
-			_GetGlobalStat2 = Marshal.GetDelegateForFunctionPointer<FGetGlobalStat2>( Marshal.ReadIntPtr( VTable, 312) );
-			_GetGlobalStatHistory1 = Marshal.GetDelegateForFunctionPointer<FGetGlobalStatHistory1>( Marshal.ReadIntPtr( VTable, 336) );
-			_GetGlobalStatHistory2 = Marshal.GetDelegateForFunctionPointer<FGetGlobalStatHistory2>( Marshal.ReadIntPtr( VTable, 328) );
+			_GetGlobalStat1 = Marshal.GetDelegateForFunctionPointer<FGetGlobalStat1>( Marshal.ReadIntPtr( VTable, Config.Os == OsType.Windows ? 320 : 312 ) );
+			_GetGlobalStat2 = Marshal.GetDelegateForFunctionPointer<FGetGlobalStat2>( Marshal.ReadIntPtr( VTable, Config.Os == OsType.Windows ? 312 : 320 ) );
+			_GetGlobalStatHistory1 = Marshal.GetDelegateForFunctionPointer<FGetGlobalStatHistory1>( Marshal.ReadIntPtr( VTable, Config.Os == OsType.Windows ? 336 : 328 ) );
+			_GetGlobalStatHistory2 = Marshal.GetDelegateForFunctionPointer<FGetGlobalStatHistory2>( Marshal.ReadIntPtr( VTable, Config.Os == OsType.Windows ? 328 : 336 ) );
 		}
 		
 		#region FunctionMeta
@@ -258,7 +258,7 @@ namespace Steamworks
 		#endregion
 		internal async Task<UserStatsReceived_t?> RequestUserStats( SteamId steamIDUser )
 		{
-			return await (new Result<UserStatsReceived_t>( _RequestUserStats( Self, steamIDUser ) )).GetResult();
+			return await UserStatsReceived_t.GetResultAsync( _RequestUserStats( Self, steamIDUser ) );
 		}
 		
 		#region FunctionMeta
@@ -329,7 +329,7 @@ namespace Steamworks
 		#endregion
 		internal async Task<LeaderboardFindResult_t?> FindOrCreateLeaderboard( string pchLeaderboardName, LeaderboardSort eLeaderboardSortMethod, LeaderboardDisplay eLeaderboardDisplayType )
 		{
-			return await (new Result<LeaderboardFindResult_t>( _FindOrCreateLeaderboard( Self, pchLeaderboardName, eLeaderboardSortMethod, eLeaderboardDisplayType ) )).GetResult();
+			return await LeaderboardFindResult_t.GetResultAsync( _FindOrCreateLeaderboard( Self, pchLeaderboardName, eLeaderboardSortMethod, eLeaderboardDisplayType ) );
 		}
 		
 		#region FunctionMeta
@@ -340,7 +340,7 @@ namespace Steamworks
 		#endregion
 		internal async Task<LeaderboardFindResult_t?> FindLeaderboard( string pchLeaderboardName )
 		{
-			return await (new Result<LeaderboardFindResult_t>( _FindLeaderboard( Self, pchLeaderboardName ) )).GetResult();
+			return await LeaderboardFindResult_t.GetResultAsync( _FindLeaderboard( Self, pchLeaderboardName ) );
 		}
 		
 		#region FunctionMeta
@@ -395,7 +395,7 @@ namespace Steamworks
 		#endregion
 		internal async Task<LeaderboardScoresDownloaded_t?> DownloadLeaderboardEntries( SteamLeaderboard_t hSteamLeaderboard, LeaderboardDataRequest eLeaderboardDataRequest, int nRangeStart, int nRangeEnd )
 		{
-			return await (new Result<LeaderboardScoresDownloaded_t>( _DownloadLeaderboardEntries( Self, hSteamLeaderboard, eLeaderboardDataRequest, nRangeStart, nRangeEnd ) )).GetResult();
+			return await LeaderboardScoresDownloaded_t.GetResultAsync( _DownloadLeaderboardEntries( Self, hSteamLeaderboard, eLeaderboardDataRequest, nRangeStart, nRangeEnd ) );
 		}
 		
 		#region FunctionMeta
@@ -406,7 +406,7 @@ namespace Steamworks
 		#endregion
 		internal async Task<LeaderboardScoresDownloaded_t?> DownloadLeaderboardEntriesForUsers( SteamLeaderboard_t hSteamLeaderboard, [In,Out] SteamId[]  prgUsers, int cUsers )
 		{
-			return await (new Result<LeaderboardScoresDownloaded_t>( _DownloadLeaderboardEntriesForUsers( Self, hSteamLeaderboard, prgUsers, cUsers ) )).GetResult();
+			return await LeaderboardScoresDownloaded_t.GetResultAsync( _DownloadLeaderboardEntriesForUsers( Self, hSteamLeaderboard, prgUsers, cUsers ) );
 		}
 		
 		#region FunctionMeta
@@ -429,7 +429,7 @@ namespace Steamworks
 		#endregion
 		internal async Task<LeaderboardScoreUploaded_t?> UploadLeaderboardScore( SteamLeaderboard_t hSteamLeaderboard, LeaderboardUploadScoreMethod eLeaderboardUploadScoreMethod, int nScore, [In,Out] int[]  pScoreDetails, int cScoreDetailsCount )
 		{
-			return await (new Result<LeaderboardScoreUploaded_t>( _UploadLeaderboardScore( Self, hSteamLeaderboard, eLeaderboardUploadScoreMethod, nScore, pScoreDetails, cScoreDetailsCount ) )).GetResult();
+			return await LeaderboardScoreUploaded_t.GetResultAsync( _UploadLeaderboardScore( Self, hSteamLeaderboard, eLeaderboardUploadScoreMethod, nScore, pScoreDetails, cScoreDetailsCount ) );
 		}
 		
 		#region FunctionMeta
@@ -440,7 +440,7 @@ namespace Steamworks
 		#endregion
 		internal async Task<LeaderboardUGCSet_t?> AttachLeaderboardUGC( SteamLeaderboard_t hSteamLeaderboard, UGCHandle_t hUGC )
 		{
-			return await (new Result<LeaderboardUGCSet_t>( _AttachLeaderboardUGC( Self, hSteamLeaderboard, hUGC ) )).GetResult();
+			return await LeaderboardUGCSet_t.GetResultAsync( _AttachLeaderboardUGC( Self, hSteamLeaderboard, hUGC ) );
 		}
 		
 		#region FunctionMeta
@@ -451,7 +451,7 @@ namespace Steamworks
 		#endregion
 		internal async Task<NumberOfCurrentPlayers_t?> GetNumberOfCurrentPlayers()
 		{
-			return await (new Result<NumberOfCurrentPlayers_t>( _GetNumberOfCurrentPlayers( Self ) )).GetResult();
+			return await NumberOfCurrentPlayers_t.GetResultAsync( _GetNumberOfCurrentPlayers( Self ) );
 		}
 		
 		#region FunctionMeta
@@ -462,7 +462,7 @@ namespace Steamworks
 		#endregion
 		internal async Task<GlobalAchievementPercentagesReady_t?> RequestGlobalAchievementPercentages()
 		{
-			return await (new Result<GlobalAchievementPercentagesReady_t>( _RequestGlobalAchievementPercentages( Self ) )).GetResult();
+			return await GlobalAchievementPercentagesReady_t.GetResultAsync( _RequestGlobalAchievementPercentages( Self ) );
 		}
 		
 		#region FunctionMeta
@@ -507,7 +507,7 @@ namespace Steamworks
 		#endregion
 		internal async Task<GlobalStatsReceived_t?> RequestGlobalStats( int nHistoryDays )
 		{
-			return await (new Result<GlobalStatsReceived_t>( _RequestGlobalStats( Self, nHistoryDays ) )).GetResult();
+			return await GlobalStatsReceived_t.GetResultAsync( _RequestGlobalStats( Self, nHistoryDays ) );
 		}
 		
 		#region FunctionMeta

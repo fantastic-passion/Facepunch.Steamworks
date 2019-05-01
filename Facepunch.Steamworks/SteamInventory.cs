@@ -32,11 +32,11 @@ namespace Steamworks
 
 		internal static void InstallEvents()
 		{
-			new Event<SteamInventoryFullUpdate_t>( x => OnInventoryUpdated?.Invoke() );
-			new Event<SteamInventoryDefinitionUpdate_t>( x => DefinitionsUpdated() );
+			SteamInventoryFullUpdate_t.Install( x => OnInventoryUpdated?.Invoke( x.Handle ) );
+			SteamInventoryDefinitionUpdate_t.Install( x => DefinitionsUpdated() );
 		}
 
-		public static event Action OnInventoryUpdated;
+		public static event Action<int> OnInventoryUpdated;
 		public static event Action OnDefinitionsUpdated;
 
 		internal static int defUpdateCount = 0;
