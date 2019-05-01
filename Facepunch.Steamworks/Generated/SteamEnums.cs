@@ -338,7 +338,7 @@ namespace Steamworks
 	//
 	// EChatRoomEnterResponse
 	//
-	internal enum ChatRoomEnterResponse : int
+	public enum RoomEnter : int
 	{
 		Success = 1,
 		DoesntExist = 2,
@@ -946,7 +946,7 @@ namespace Steamworks
 	//
 	// EP2PSend
 	//
-	internal enum P2PSend : int
+	public enum P2PSend : int
 	{
 		Unreliable = 0,
 		UnreliableNoDelay = 1,

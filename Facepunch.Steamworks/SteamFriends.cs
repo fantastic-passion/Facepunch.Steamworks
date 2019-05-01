@@ -127,9 +127,9 @@ namespace Steamworks
 
 		public static IEnumerable<Friend> GetPlayedWith()
 		{
-			for ( int i = 0; i < Internal.GetFriendCount( (int)FriendFlags.Blocked ); i++ )
+			for ( int i = 0; i < Internal.GetCoplayFriendCount(); i++ )
 			{
-				yield return new Friend( Internal.GetFriendByIndex( i, 0xFFFF ) );
+				yield return new Friend( Internal.GetCoplayFriend( i ) );
 			}
 		}
 
@@ -179,7 +179,7 @@ namespace Steamworks
 		/// </summary>
 		public static void SetPlayedWith( SteamId steamid ) => Internal.SetPlayedWith( steamid );
 
-		static async Task CacheUserInformationAsync( SteamId steamid, bool nameonly )
+		internal static async Task CacheUserInformationAsync( SteamId steamid, bool nameonly )
 		{
 			// Got it straight away, skip any waiting.
 			if ( !Internal.RequestUserInformation( steamid, nameonly ) )

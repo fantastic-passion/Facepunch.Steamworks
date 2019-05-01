@@ -25,6 +25,7 @@ public static class Cleanup
 		type = type.Replace( "UGCMatchingUGCType", "UgcType" );
 		type = type.Replace( "SteamItemInstanceID_t", "InventoryItemId" );
 		type = type.Replace( "SteamItemDef_t", "InventoryDefId" );
+		type = type.Replace( "ChatRoomEnterResponse", "RoomEnter" );
 
 		return type;
 	}
@@ -58,6 +59,8 @@ public static class Cleanup
 		if ( name == "UgcType" ) return "public";
 		if ( name == "InventoryItemId" ) return "public";
 		if ( name == "InventoryDefId" ) return "public";
+		if ( name == "P2PSend" ) return "public";
+		if ( name == "RoomEnter" ) return "public";
 
 		return "internal";
 	}

@@ -24,7 +24,7 @@ namespace Steamworks
 
 		static bool initialized;
 
-        public static bool UseAsyncCallback = false;
+        public static bool AutoCallbackUpdate = false;
 
 		public static void Init( uint appid, bool allowDevAppIdFallback = false)
 		{
@@ -53,9 +53,8 @@ namespace Steamworks
             }
 
             AppId = appid;
-
-			initialized = true;
-
+            initialized = true;
+ 
             SteamApps.InstallEvents();
             SteamUtils.InstallEvents();
             SteamParental.InstallEvents();
@@ -70,7 +69,7 @@ namespace Steamworks
             SteamMatchmaking.InstallEvents();
 
 
-            if (UseAsyncCallback)
+            if (AutoCallbackUpdate)
             {
                 RunCallbacksAsync().ContinueWith(
                     t =>
@@ -83,7 +82,7 @@ namespace Steamworks
 
 		public static bool IsValid => initialized;
 
-		internal static async Task RunCallbacksAsync()
+		public static async Task RunCallbacksAsync()
 		{
 			while ( IsValid )
 			{
@@ -107,20 +106,20 @@ namespace Steamworks
 
 			initialized = false;
 
-            SteamApps.Shutdown();
-            SteamUtils.Shutdown();
-            SteamParental.Shutdown();
-            SteamMusic.Shutdown();
-            SteamVideo.Shutdown();
-            SteamUser.Shutdown();
-            SteamFriends.Shutdown();
-            SteamScreenshots.Shutdown();
-            SteamUserStats.Shutdown();
-            SteamInventory.Shutdown();
-            SteamNetworking.Shutdown();
-            SteamMatchmaking.Shutdown();    
+			SteamApps.Shutdown();
+			SteamUtils.Shutdown();
+			SteamParental.Shutdown();
+			SteamMusic.Shutdown();
+			SteamVideo.Shutdown();
+			SteamUser.Shutdown();
+			SteamFriends.Shutdown();
+			SteamScreenshots.Shutdown();
+			SteamUserStats.Shutdown();
+			SteamInventory.Shutdown();
+			SteamNetworking.Shutdown();
+			SteamMatchmaking.Shutdown();
 
-            SteamAPI.Shutdown();
+			SteamAPI.Shutdown();
 		}
 
 		internal static void RegisterCallback( IntPtr intPtr, int callbackId )

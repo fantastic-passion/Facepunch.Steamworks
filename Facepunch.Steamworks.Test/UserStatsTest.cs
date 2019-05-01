@@ -13,7 +13,7 @@ namespace Steamworks
     public class UserStatsTest
 	{
 		[TestMethod]
-        public void AchievementList()
+        public async Task AchievementList()
         {
 			foreach ( var a in SteamUserStats.Achievements )
 			{
@@ -24,7 +24,7 @@ namespace Steamworks
 				Console.WriteLine( $"	a.Description: {a.Description}" );
 				Console.WriteLine( $"	a.GlobalUnlocked:	{a.GlobalUnlocked}" );
 
-				var icon = a.GetIcon();
+				var icon = await a.GetIconAsync();
 
 				Console.WriteLine( $"	a.Icon:	{icon}" );
 			}			
@@ -129,15 +129,18 @@ namespace Steamworks
 			var leaderboard = await SteamUserStats.FindLeaderboard( "Testleaderboard" );
 			Assert.IsTrue( leaderboard.HasValue );
 
-			// Get entries around user
-			var relativeScores = await leaderboard.Value.GetScoresAroundUserAsync( -5, 5 );
-			Assert.IsNotNull( relativeScores );
-
-			Console.WriteLine( $"" );
-			Console.WriteLine( $"Relative Scores:" );
-			foreach ( var e in relativeScores )
+			for ( int i = 1; i < 10; i++ )
 			{
-				Console.WriteLine( $"{e.GlobalRank}: {e.Score} {e.User}" );
+				// Get entries around user
+				var relativeScores = await leaderboard.Value.GetScoresAroundUserAsync( -i, i );
+				Assert.IsNotNull( relativeScores );
+
+				Console.WriteLine( $"" );
+				Console.WriteLine( $"Relative Scores:" );
+				foreach ( var e in relativeScores )
+				{
+					Console.WriteLine( $"{e.GlobalRank}: {e.Score} {e.User}" );
+				}
 			}
 		}
 
